@@ -10,7 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Arrays;import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -68,6 +69,13 @@ public class MysqlExportService {
     public static final String JDBC_CONNECTION_STRING = "JDBC_CONNECTION_STRING";
     public static final String JDBC_DRIVER_NAME = "JDBC_DRIVER_NAME";
     public static final String SQL_FILE_NAME = "SQL_FILE_NAME";
+
+    /**
+     * The property key for specifying a comma-separated list of 
+     * specific table names to be exported from the database rather than 
+     * exporting the entire database.
+     */
+    public static final String SPECIFIC_TABLES_FOR_EXPORT = "EXPORT_SPECIFIC_TABLES_LIST";
 
 
     public MysqlExportService(Properties properties) {
@@ -322,14 +330,32 @@ public class MysqlExportService {
         TablesResponse allTablesAndViews = MysqlBaseService.getAllTablesAndViews(database, stmt);
 
         List<String> tables = allTablesAndViews.getTables();
-        //for every table, get the table creation and data
-        // insert statement
-        for (String s: tables) {
-            try {
-                sql.append(getTableInsertStatement(s.trim()));
-                sql.append(getDataInsertStatement(s.trim()));
-            } catch (SQLException e) {
-                logger.error("Exception occurred while processing table: " + s, e);
+
+        // Retrieve specific tables from properties, if they exist
+        String specificTables = properties.containsKey(SPECIFIC_TABLES_FOR_EXPORT)
+            ? properties.getProperty(SPECIFIC_TABLES_FOR_EXPORT)
+            : "";
+
+        // Split the specific tables into a list
+        List<String> specificTableList = new ArrayList<>();
+        if (!specificTables.isEmpty()) {
+            specificTableList = Arrays.stream(specificTables.split(",")).map(String::trim).toList();
+        }
+
+        for (String s : tables) {
+
+            // Trim whitespace from the table name
+            String specificTableName = s.trim();
+
+            // Determine if the specific table list is empty or includes the current table name
+            // If so, generate SQL statements for table creation and data insertion
+            if (specificTableList.isEmpty() || specificTableList.contains(specificTableName)) {
+                try {
+                    sql.append(getTableInsertStatement(specificTableName));
+                    sql.append(getDataInsertStatement(specificTableName));
+                } catch (SQLException e) {
+                    logger.error("Exception occurred while processing table: " + s, e);
+                }
             }
         }
 
