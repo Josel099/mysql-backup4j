@@ -1,7 +1,7 @@
 mysql-backup4j
 ==============
 
-[![Build Status](https://travis-ci.org/SeunMatt/mysql-backup4j.svg?branch=master)](https://travis-ci.org/SeunMatt/mysql-backup4j)
+[![SeunMatt](https://circleci.com/gh/SeunMatt/request-validator.svg?style=svg)](https://github.com/SeunMatt/mysql-backup4j)
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.smattme/mysql-backup4j/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.smattme/mysql-backup4j/badge.svg)
 
@@ -21,7 +21,7 @@ The artifact is available on Maven Central and can be added to the project's pom
 <dependency>
     <groupId>com.smattme</groupId>
     <artifactId>mysql-backup4j</artifactId>
-    <version>1.2.1</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -40,6 +40,8 @@ Properties properties = new Properties();
 properties.setProperty(MysqlExportService.DB_NAME, "database-name");
 properties.setProperty(MysqlExportService.DB_USERNAME, "root");
 properties.setProperty(MysqlExportService.DB_PASSWORD, "root");
+properties.setProperty(MysqlExportService.DB_HOST, "localhost");
+properties.setProperty(MysqlExportService.DB_PORT, "3306");
         
 //properties relating to email config
 properties.setProperty(MysqlExportService.EMAIL_HOST, "smtp.mailtrap.io");
@@ -48,6 +50,11 @@ properties.setProperty(MysqlExportService.EMAIL_USERNAME, "mailtrap-username");
 properties.setProperty(MysqlExportService.EMAIL_PASSWORD, "mailtrap-password");
 properties.setProperty(MysqlExportService.EMAIL_FROM, "test@smattme.com");
 properties.setProperty(MysqlExportService.EMAIL_TO, "backup@smattme.com");
+
+//optional email configs
+properties.setProperty(MysqlExportService.EMAIL_SSL_PROTOCOLS, "TLSv1.2");
+properties.setProperty(MysqlExportService.EMAIL_SMTP_AUTH_ENABLED, "true");
+properties.setProperty(MysqlExportService.EMAIL_START_TLS_ENABLED, "true");
 
 //set the outputs temp dir
 properties.setProperty(MysqlExportService.TEMP_DIR, new File("external").getPath());
@@ -110,6 +117,8 @@ boolean res = MysqlImportService.builder()
         .setSqlString(sql)
         .setUsername("root")
         .setPassword("root")
+        .setHost("localhost")
+        .setPort("3306")
         .setDeleteExisting(true)
         .setDropExisting(true)
         .importDatabase();
@@ -144,7 +153,7 @@ Supplying `false` to these functions will disable their respective actions.
 
 CHANGELOG
 =========
-V 1.2.1
+v1.2.1
     - Raises a new runtime exception `MysqlBackup4JException` if the required properties are not configured
 
 Author
