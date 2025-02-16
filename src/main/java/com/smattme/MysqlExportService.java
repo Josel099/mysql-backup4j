@@ -1,23 +1,30 @@
 package com.smattme;
 
-import com.smattme.exceptions.MysqlBackup4JException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.zeroturnaround.zip.ZipUtil;
+import static com.smattme.helpers.MysqlExportServiceHelper.bytesToHex;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
-import static com.smattme.helpers.MysqlExportServiceHelper.bytesToHex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.zeroturnaround.zip.ZipUtil;
+
+import com.smattme.exceptions.MysqlBackup4JException;
 
 /**
  * Created by seun_ on 24-Feb-18.
@@ -342,37 +349,28 @@ public class MysqlExportService {
                 .append("\n/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;");
 
 
+        // Retrieve specific tables from properties, if they exist #remove
+        String specificTables = properties.getProperty(SPECIFIC_TABLES_FOR_EXPORT, "");
+     
+        // Split the specific tables into a list
+        List<String> specificTableList = !specificTables.isEmpty()
+            ? Arrays.stream(specificTables.split(",")).map(String::trim).collect(Collectors.toList())
+            : Collections.emptyList();
+        
         //get the tables that are in the database
-//        List<String> tables = MysqlBaseService.getAllTables(database, stmt);
-        TablesResponse allTablesAndViews = MysqlBaseService.getAllTablesAndViews(database, stmt);
+        //List<String> tables = MysqlBaseService.getAllTables(database, stmt);
+        TablesResponse allTablesAndViews = MysqlBaseService.getAllTablesAndViews(database, stmt,specificTableList);
 
         List<String> tables = allTablesAndViews.getTables();
-
-        // Retrieve specific tables from properties, if they exist
-        String specificTables = properties.containsKey(SPECIFIC_TABLES_FOR_EXPORT)
-            ? properties.getProperty(SPECIFIC_TABLES_FOR_EXPORT)
-            : "";
-
-        // Split the specific tables into a list
-        List<String> specificTableList = new ArrayList<>();
-        if (!specificTables.isEmpty()) {
-            specificTableList = Arrays.stream(specificTables.split(",")).map(String::trim).toList();
-        }
-
-        for (String s : tables) {
-
-            // Trim whitespace from the table name
-            String specificTableName = s.trim();
-
-            // Determine if the specific table list is empty or includes the current table name
-            // If so, generate SQL statements for table creation and data insertion
-            if (specificTableList.isEmpty() || specificTableList.contains(specificTableName)) {
-                try {
-                    sql.append(getTableInsertStatement(specificTableName));
-                    sql.append(getDataInsertStatement(specificTableName));
-                } catch (SQLException e) {
-                    logger.error("Exception occurred while processing table: " + s, e);
-                }
+       
+        //for every table, get the table creation and data
+        // insert statement
+        for (String s: tables) {
+            try {
+                sql.append(getTableInsertStatement(s.trim()));
+                sql.append(getDataInsertStatement(s.trim()));
+            } catch (SQLException e) {
+                logger.error("Exception occurred while processing table: " + s, e);
             }
         }
 
