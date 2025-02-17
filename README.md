@@ -94,6 +94,7 @@ If u want to export **specific tables** from the database there is also a featur
 ```java
 properties.setProperty(MysqlExportService.SPECIFIC_TABLES_FOR_EXPORT, "table_1,table_2,table_3");
 ```
+>**Note:** If you provide a table name with a typo or incorrect spelling, it will be ignored.
 
 Other parameters are:
 

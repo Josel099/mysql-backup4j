@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,21 +125,31 @@ public class MysqlBaseService {
         List<String> tables = new ArrayList<>();
         List<String> views = new ArrayList<>();
 
-        ResultSet rs;
-        rs = stmt.executeQuery("SHOW TABLE STATUS FROM `" + database + "`;");
-        while ( rs.next() ) {
-            String comment = rs.getString("Comment");
-            String tableName = rs.getString("Name");
-
-          // If specificTableList is not empty, check if the table/view is in the list
-          if (specificTableList.isEmpty() || specificTableList.contains(tableName)) {
-              if ("VIEW".equals(comment)) {
-                  views.add(tableName);
-              } else {
-                  tables.add(tableName);
-              }
-          }
+        String query;
+        if (specificTableList.isEmpty()) {
+            query = "SHOW TABLE STATUS FROM `" + database + "`;";
+        } else {
+            // Build an IN clause with the specific table names
+            String inClause = specificTableList.stream()
+                    .map(table -> "'" + table + "'")
+                    .collect(Collectors.joining(", "));
+            query = "SHOW TABLE STATUS FROM `" + database + "` WHERE `Name` IN (" + inClause + ");";
         }
+        
+        ResultSet rs = stmt.executeQuery(query);
+        
+        while ( rs.next() ) {
+            
+            String tableName = rs.getString("Name");
+            String comment = rs.getString("Comment");
+            
+            if("VIEW".equals(comment)) {
+                views.add(tableName);
+            } else {
+                tables.add(tableName);
+            }
+        }
+        
         return new TablesResponse(tables, views);
     }
 
